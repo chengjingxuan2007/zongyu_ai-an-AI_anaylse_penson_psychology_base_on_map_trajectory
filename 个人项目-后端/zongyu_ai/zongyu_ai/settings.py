@@ -136,11 +136,17 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# 文件：个人项目-后端/zongyu_ai/zongyu_ai/settings.py  （只改下面两行附近）
+ALLOWED_HOSTS = ['*']                      # 临时允许局域网手机访问（上线前必须收紧！）
 
-
+# CORS 也要允许手机来源，把手机访问页面的地址加进去：
 CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:5500"
+    "http://127.0.0.1:5500",               # 电脑自己预览用
+    "http://10.199.166.126:5500",          # ← 手机访问前端页面的地址（电脑局域网IP）
+    "http://10.199.166.126:8000",          # ← 手机直接访问后端接口的来源
 ]
+
+
 
 from datetime import timedelta
 

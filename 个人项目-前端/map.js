@@ -28,60 +28,63 @@ document.addEventListener("DOMContentLoaded", function () {
     // 将map对象挂载到window上，方便在其他脚本中调用地图实例（例如添加轨迹点）
     window.myMapInstance = map;
 
-    // ===== 轨迹绘制（demo 数据写死，必须等地图创建完成后再执行）=====
+    // ===== 轨迹绘制（先画 demo，等真实轨迹拉回后可用 drawTrack 重绘）=====
 
-    // ① 轨迹数据：写死一串经纬度坐标（经度, 纬度），模拟"今天走过的路"
-    const trackCoords = [
-        [106.96, 33.21],   // 起点
-        [106.965, 33.215],
-        [106.97, 33.212],
-        [106.975, 33.22],
-        [106.982, 33.218],
-        [106.988, 33.225]  // 终点
-    ];
-    // 暴露轨迹坐标，供轨迹分析页统计使用
-    window.trackCoords = trackCoords;
+    let currentTrackLayer = null;   // 当前轨迹图层，重绘前先移除旧的
 
-    // ② 把经纬度转成 OpenLayers 内部坐标，然后画成一条线
-    const trackLine = new ol.Feature({
-        geometry: new ol.geom.LineString(
-            trackCoords.map(coord => ol.proj.fromLonLat(coord))  // 逐个转换
-        )
-    });
-    trackLine.setStyle(new ol.style.Style({
-        stroke: new ol.style.Stroke({
-            color: '#11998e',   // 线的颜色（和你页面主题一致）
-            width: 2           // 线宽
-        })
-    }));
+    // 通用轨迹绘制函数：输入 [[经度,纬度], ...] 坐标数组，画线 + 起终点 + 视野缩放
+    window.drawTrack = function (coords) {
+        if (!coords || coords.length < 2) {
+            console.warn("轨迹点数不足，无法绘制");
+            return;
+        }
 
-    // ③ 起点和终点各放一个圆点标记
-    function makePoint(coord, color) {
-        const p = new ol.Feature({
-            geometry: new ol.geom.Point(ol.proj.fromLonLat(coord))
+        // 移除上一次画的轨迹（demo 或真实轨迹）
+        if (currentTrackLayer) {
+            map.removeLayer(currentTrackLayer);
+            currentTrackLayer = null;
+        }
+
+        // 画成一条线
+        const trackLine = new ol.Feature({
+            geometry: new ol.geom.LineString(
+                coords.map(coord => ol.proj.fromLonLat(coord))
+            )
         });
-        p.setStyle(new ol.style.Style({
-            image: new ol.style.Circle({
-                radius: 6,
-                fill: new ol.style.Fill({ color: color })
-            })
+        trackLine.setStyle(new ol.style.Style({
+            stroke: new ol.style.Stroke({ color: '#11998e', width: 2 })
         }));
-        return p;
-    }
-    const startPoint = makePoint(trackCoords[0], '#e8463a');                      // 起点红色
-    const endPoint   = makePoint(trackCoords[trackCoords.length - 1], '#38ef7d'); // 终点绿色
 
-    // ④ 把线 + 两个点装进矢量图层，加到地图上
-    const trackLayer = new ol.layer.Vector({
-        source: new ol.source.Vector({
-            features: [trackLine, startPoint, endPoint]
-        })
-    });
-    map.addLayer(trackLayer);
+        // 起点和终点圆点标记
+        function makePoint(coord, color) {
+            const p = new ol.Feature({
+                geometry: new ol.geom.Point(ol.proj.fromLonLat(coord))
+            });
+            p.setStyle(new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 6,
+                    fill: new ol.style.Fill({ color: color })
+                })
+            }));
+            return p;
+        }
+        const startPoint = makePoint(coords[0], '#e8463a');                      // 起点红色
+        const endPoint   = makePoint(coords[coords.length - 1], '#38ef7d');      // 终点绿色
 
-    // ⑤ 自动缩放视野，让整条轨迹刚好完整显示
-    map.getView().fit(
-        trackLine.getGeometry().getExtent(),   // 线的范围
-        { padding: [80, 80, 80, 80], duration: 500 }  // 四周留白，动画过渡
-    );
+        currentTrackLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+                features: [trackLine, startPoint, endPoint]
+            })
+        });
+        map.addLayer(currentTrackLayer);
+
+        // 同步给统计/AI 分析使用的全局坐标
+        window.trackCoords = coords;
+
+        // 自动缩放视野，让整条轨迹刚好完整显示
+        map.getView().fit(
+            trackLine.getGeometry().getExtent(),
+            { padding: [80, 80, 80, 80], duration: 500 }
+        );
+    };
 });

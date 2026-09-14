@@ -22,6 +22,11 @@
 
         <!-- 上半部分：路径地图 + 统计数据 -->
         <section class="p-4 rounded-4 shadow-sm mb-4">
+            <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                <button id="btn-start" class="btn btn-primary rounded-pill px-4" onclick="startTrack()">📍 开始记录</button>
+                <button id="btn-stop" class="btn btn-outline-danger rounded-pill px-4" onclick="stopTrack()" disabled>⏹ 结束并加载</button>
+                <span id="track-status" class="text-muted small ms-2">点击「开始记录」，每 20 秒自动打点一次</span>
+            </div>
             <div id="map" class="rounded-3"></div>
             <div class="row g-3 mt-1 text-center">
                 <div class="col-4">

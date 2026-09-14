@@ -1,4 +1,4 @@
-const API_BASE = 'http://127.0.0.1:8000/api';
+const API_BASE = 'http://10.199.166.126:8000/api';
 let currentMode = 'normal';
 
 // 左侧模式切换：点谁亮谁
