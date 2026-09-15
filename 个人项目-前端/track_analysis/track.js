@@ -1,4 +1,4 @@
-const API_BASE = 'http://10.199.166.126:8000/api';
+const API_BASE = window.location.protocol === 'https:' ? '/api' : 'http://' + window.location.hostname + ':8000/api';
 // 打点间隔：每 20 秒记录一个定位点
 const TRACK_INTERVAL_MS = 20000;
 
@@ -6,6 +6,7 @@ const TRACK_INTERVAL_MS = 20000;
 let trackSessionId = null;    // 后端返回的出行会话 ID
 let trackTimer = null;        // setInterval 句柄
 let trackMinutes = 60;        // 展示用出行时长（demo 默认 1 小时，真实结束会更新）
+let trackStartTime = null;    // 点击「开始记录」的时刻（毫秒时间戳，用于前端算时长）
 
 // 两点间距离（米），Haversine 公式
 function segDist(a, b) {
@@ -68,6 +69,7 @@ async function startTrack() {
     const token = getToken();
     if (!token) return;
 
+    trackStartTime = Date.now();     // 记下点击「开始记录」的时刻
     setButtons(true);
     setStatus('正在创建出行记录...');
     try {
@@ -121,11 +123,17 @@ function reportOnce() {
     }, { enableHighAccuracy: true, timeout: 10000 });
 }
 
-// ③ 结束记录：拉回真实轨迹并画到地图上
+// ③ 结束记录：用「点击结束 - 点击开始」的时间差算时长，再拉回真实轨迹画到地图上
 async function stopTrack() {
     clearInterval(trackTimer);
     trackTimer = null;
     setButtons(false);
+
+    // 前端直接算出行时长：点击结束按钮的时刻 - 点击开始按钮的时刻
+    if (trackStartTime) {
+        trackMinutes = Math.max(1, Math.round((Date.now() - trackStartTime) / 60000));
+        trackStartTime = null;
+    }
 
     const token = localStorage.getItem('access_token');
     setStatus('正在拉取真实轨迹...');
@@ -137,8 +145,6 @@ async function stopTrack() {
         if (!res.ok || data.code !== 200) throw new Error(data.msg || '拉取失败');
 
         const coords = data.data.coords || [];
-        // 按 20 秒打点间隔估算出行时长（分钟）
-        trackMinutes = Math.max(1, Math.round((coords.length - 1) * TRACK_INTERVAL_MS / 60000));
 
         // 交给 map.js 重绘真实轨迹
         if (coords.length >= 2) {

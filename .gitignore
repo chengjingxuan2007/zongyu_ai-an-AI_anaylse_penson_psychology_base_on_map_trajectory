@@ -10,6 +10,9 @@ __pycache__/
 venv/
 env/
 
+# ===== 本地联调脚本（不提交）=====
+dev_proxy.py
+
 # ===== IDE / 编辑器 =====
 .idea/
 .vscode/
